@@ -6,7 +6,7 @@ app = FastAPI()
 
 # Allow frontend to access backend
 origins = [
-    "https://sportsread.netlify.app/",  # your frontend URL
+    "https://sportsread.netlify.app",  # your frontend URL
     "http://localhost:8080",
     "http://127.0.0.1:8080"
 ]
