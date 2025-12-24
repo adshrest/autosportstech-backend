@@ -1,59 +1,36 @@
-import feedparser
-import re
-from datetime import datetime
-
-RSS_FEEDS = [
-    "https://www.espn.com/espn/rss/news",
-    "https://feeds.bbci.co.uk/sport/rss.xml",
-    "https://www.skysports.com/rss/12040"
-]
-
-def detect_category(title, summary):
-    text = f"{title} {summary}".lower()
-
-    if any(word in text for word in [
-        "football", "soccer", "fifa", "premier league",
-        "champions league", "la liga", "manchester", "arsenal"
-    ]):
-        return "Soccer"
-
-    if any(word in text for word in [
-        "cricket", "ipl", "odi", "t20", "test match", "icc", "bcci"
-    ]):
-        return "Cricket"
-
-    return "Other"
-
-def rewrite_summary(text):
-    text = re.sub('<[^<]+?>', '', text)
-    text = text.replace("Read more", "").strip()
-
-    if len(text) > 250:
-        text = text[:250] + "..."
-
-    return text
+import requests
+from bs4 import BeautifulSoup
 
 def generate_daily_news():
-    articles = []
+    news = []
 
-    for url in RSS_FEEDS:
-        feed = feedparser.parse(url)
+    # Example: Scrape BBC Sport Football headlines
+    url = "https://www.bbc.com/sport/football"
+    resp = requests.get(url)
+    soup = BeautifulSoup(resp.text, "html.parser")
 
-        for entry in feed.entries[:5]:
-            article = {
-                "title": entry.get("title", ""),
-                "content": rewrite_summary(entry.get("summary", "")),
-                "link": entry.get("link", ""),
-                "published": entry.get("published", ""),
-                "category": detect_category(
-                    entry.get("title", ""),
-                    entry.get("summary", "")
-                )
-            }
-            articles.append(article)
+    for item in soup.select("a.gs-c-promo-heading")[:10]:
+        title = item.get_text(strip=True)
+        link = item["href"]
+        if not link.startswith("http"):
+            link = f"https://www.bbc.com{link}"
+        news.append({"title": title, "content": "", "url": link})
 
-    return articles
+    return news
 
-def get_trending_news():
-    news = generate_daily_news()
-    return sorted(news, key=lambda x: len(x["title"]), reverse=True)[:5]
+def generate_trending_news():
+    trending = []
+
+    # Example: Scrape ESPN trending headlines
+    url = "https://www.espn.com/"
+    resp = requests.get(url)
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    for item in soup.select("section.headlineStack li a")[:10]:
+        title = item.get_text(strip=True)
+        link = item["href"]
+        if not link.startswith("http"):
+            link = f"https://www.espn.com{link}"
+        trending.append({"title": title, "url": link})
+
+    return trending

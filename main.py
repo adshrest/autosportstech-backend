@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.news_generator import generate_daily_news, get_trending_news
+from app.news_generator import generate_daily_news, generate_trending_news
 
 app = FastAPI()
 
+# Allow frontend to access backend
 origins = [
-    "https://sportsread.netlify.app",
+    "https://sportsread.netlify.app",  # your frontend URL
     "http://localhost:8080",
     "http://127.0.0.1:8080"
 ]
@@ -23,9 +24,9 @@ def home():
     return {"message": "Backend is working!"}
 
 @app.get("/api/news")
-def news():
+def get_news():
     return generate_daily_news()
 
 @app.get("/api/trending")
-def trending():
-    return get_trending_news()
+def get_trending_news():
+    return generate_trending_news()
