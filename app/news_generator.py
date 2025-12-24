@@ -1,36 +1,51 @@
 import requests
 from bs4 import BeautifulSoup
 
-def generate_daily_news():
-    news = []
+SPORTS_NEWS_URLS = [
+    "https://www.espn.com/espn/latestnews",
+    "https://www.skysports.com/football/news",
+    # Add more sports news URLs here
+]
 
-    # Example: Scrape BBC Sport Football headlines
-    url = "https://www.bbc.com/sport/football"
-    resp = requests.get(url)
-    soup = BeautifulSoup(resp.text, "html.parser")
-
-    for item in soup.select("a.gs-c-promo-heading")[:10]:
-        title = item.get_text(strip=True)
-        link = item["href"]
-        if not link.startswith("http"):
-            link = f"https://www.bbc.com{link}"
-        news.append({"title": title, "content": "", "url": link})
-
-    return news
-
-def generate_trending_news():
+def fetch_sports_news():
     trending = []
+    latest = []
 
-    # Example: Scrape ESPN trending headlines
-    url = "https://www.espn.com/"
-    resp = requests.get(url)
-    soup = BeautifulSoup(resp.text, "html.parser")
+    for url in SPORTS_NEWS_URLS:
+        try:
+            res = requests.get(url, timeout=10)
+            soup = BeautifulSoup(res.text, "html.parser")
 
-    for item in soup.select("section.headlineStack li a")[:10]:
-        title = item.get_text(strip=True)
-        link = item["href"]
-        if not link.startswith("http"):
-            link = f"https://www.espn.com{link}"
-        trending.append({"title": title, "url": link})
+            # Example selectors for titles, links, images, and description
+            articles = soup.find_all("article")[:10]  # first 10 articles
+            for a in articles:
+                title_tag = a.find("a")
+                if not title_tag:
+                    continue
+                title = title_tag.get_text(strip=True)
+                link = title_tag['href']
+                if link.startswith("/"):
+                    link = f"{url.split('/')[0]}//{url.split('/')[2]}{link}"
 
-    return trending
+                # Optional image
+                img_tag = a.find("img")
+                img = img_tag['src'] if img_tag else ""
+
+                # Optional description / summary
+                desc_tag = a.find("p")
+                description = desc_tag.get_text(strip=True) if desc_tag else ""
+
+                item = {
+                    "title": title,
+                    "content": description,
+                    "link": link,
+                    "image": img
+                }
+                latest.append(item)
+
+            trending = latest[:5]  # top 5 trending
+
+        except Exception as e:
+            print("Error fetching news from", url, e)
+
+    return {"trending": trending, "latest": latest}
