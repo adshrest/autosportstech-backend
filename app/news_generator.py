@@ -1,35 +1,59 @@
-import random
+import feedparser
+import re
 from datetime import datetime
 
-# Simple keyword sets for free generation
-SOCCER_TEAMS = ["Barcelona", "Real Madrid", "Manchester United", "Liverpool", "Arsenal", "Chelsea", "Bayern Munich", "PSG"]
-CRICKET_TEAMS = ["India", "Australia", "England", "Pakistan", "Sri Lanka", "Bangladesh", "South Africa", "New Zealand"]
-
-SOCCER_EVENTS = [
-    "defeated", "drew against", "lost to", "crushed", "battled", "outclassed", "fought hard against"
-]
-CRICKET_EVENTS = [
-    "won against", "lost to", "tied with", "dominated", "clinched victory over", "suffered defeat from"
+RSS_FEEDS = [
+    "https://www.espn.com/espn/rss/news",
+    "https://feeds.bbci.co.uk/sport/rss.xml",
+    "https://www.skysports.com/rss/12040"
 ]
 
-def generate_soccer_news():
-    team1, team2 = random.sample(SOCCER_TEAMS, 2)
-    event = random.choice(SOCCER_EVENTS)
-    score1, score2 = random.randint(0, 4), random.randint(0, 4)
-    headline = f"{team1} {event} {team2} ({score1}-{score2})"
-    content = f"In a thrilling soccer match, {team1} {event} {team2} with a final score of {score1}-{score2}. The fans witnessed exciting gameplay and outstanding performances."
-    return {"sport": "soccer", "headline": headline, "content": content, "date": datetime.now().strftime("%Y-%m-%d")}
+def detect_category(title, summary):
+    text = f"{title} {summary}".lower()
 
-def generate_cricket_news():
-    team1, team2 = random.sample(CRICKET_TEAMS, 2)
-    event = random.choice(CRICKET_EVENTS)
-    runs1, runs2 = random.randint(150, 350), random.randint(150, 350)
-    headline = f"{team1} {event} {team2} by {abs(runs1 - runs2)} runs"
-    content = f"{team1} {event} {team2} in a high-scoring cricket clash, setting a total of {runs1} runs. {team2} replied with {runs2} runs."
-    return {"sport": "cricket", "headline": headline, "content": content, "date": datetime.now().strftime("%Y-%m-%d")}
+    if any(word in text for word in [
+        "football", "soccer", "fifa", "premier league",
+        "champions league", "la liga", "manchester", "arsenal"
+    ]):
+        return "Soccer"
+
+    if any(word in text for word in [
+        "cricket", "ipl", "odi", "t20", "test match", "icc", "bcci"
+    ]):
+        return "Cricket"
+
+    return "Other"
+
+def rewrite_summary(text):
+    text = re.sub('<[^<]+?>', '', text)
+    text = text.replace("Read more", "").strip()
+
+    if len(text) > 250:
+        text = text[:250] + "..."
+
+    return text
 
 def generate_daily_news():
-    # Generate 3 soccer + 3 cricket news items daily
-    news_list = [generate_soccer_news() for _ in range(3)] + [generate_cricket_news() for _ in range(3)]
-    random.shuffle(news_list)
-    return news_list
+    articles = []
+
+    for url in RSS_FEEDS:
+        feed = feedparser.parse(url)
+
+        for entry in feed.entries[:5]:
+            article = {
+                "title": entry.get("title", ""),
+                "content": rewrite_summary(entry.get("summary", "")),
+                "link": entry.get("link", ""),
+                "published": entry.get("published", ""),
+                "category": detect_category(
+                    entry.get("title", ""),
+                    entry.get("summary", "")
+                )
+            }
+            articles.append(article)
+
+    return articles
+
+def get_trending_news():
+    news = generate_daily_news()
+    return sorted(news, key=lambda x: len(x["title"]), reverse=True)[:5]
