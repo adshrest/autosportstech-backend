@@ -4,6 +4,7 @@ from app.news_generator import generate_daily_news
 
 app = FastAPI()
 
+# Allow frontend to access backend
 origins = [
     "https://sportsread.netlify.app",
     "http://localhost:8080",
@@ -24,15 +25,4 @@ def home():
 
 @app.get("/api/news")
 def get_news():
-    """
-    Returns a list of news items:
-    Each item should be a dict with:
-    {
-        "title": str,
-        "content": str,
-        "url": str,
-        "image": str,        # optional
-        "sport": str
-    }
-    """
     return generate_daily_news()
